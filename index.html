@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Order Kalender</title>
+    <style>
+        /* == DESAIN (CSS) == */
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;700&family=Orbitron:wght@500&display=swap');
+        :root { --transition-speed: 0.5s; }
+        body { font-family: 'Montserrat', sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; height: 100vh; overflow: hidden; }
+        .page-container { position: relative; width: 100%; height: 100%; }
+        .page { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity var(--transition-speed) ease-in-out, transform var(--transition-speed) ease-in-out; }
+        .hidden { display: none !important; }
+        @keyframes fadeInScaleUp { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        @keyframes fadeOutScaleDown { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.95); } }
+        .animate-fade-in { animation: fadeInScaleUp var(--transition-speed) forwards; }
+        .animate-fade-out { animation: fadeOutScaleDown var(--transition-speed) forwards; }
+
+        /* General Wrapper */
+        .content-wrapper { background: linear-gradient(145deg, #2c3e50, #34495e); width: 100%; height: 100%; overflow-y: auto; }
+        .content-container { padding: 30px 40px; width: 100%; max-width: 900px; color: #ecf0f1; margin: 30px auto; }
+        .content-container h1, .content-container h2 { text-align: center; color: #ffffff; font-weight: 700; margin-bottom: 20px; }
+        
+        /* Welcome & Dashboards */
+        #welcomeScreen, #adminDashboardPage, #pelangganDashboardPage { background: linear-gradient(145deg, #2c3e50, #34495e); color: white; text-align: center; padding: 20px; }
+        #welcomeScreen h1, #pelangganDashboardPage h2 { font-size: 2.5em; margin: 20px 0; }
+        .dashboard-buttons { display: flex; flex-direction: column; align-items: center; }
+        .dashboard-buttons .btn, .welcome-buttons button { padding: 15px 40px; margin: 10px; border: 2px solid white; border-radius: 50px; background-color: transparent; color: white; font-size: 1.1em; cursor: pointer; transition: all 0.3s ease; width: 300px; max-width: 90%; }
+        .dashboard-buttons .btn:hover, .welcome-buttons button:hover { background-color: white; color: #2c3e50; }
+
+        /* Judul & Jam di Welcome Page */
+        .welcome-header { margin-bottom: 20px; text-shadow: 0 2px 5px rgba(0,0,0,0.4); }
+        .main-title { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 2.2em; letter-spacing: 1px; color: #fdd835; margin: 0; }
+        .motto { font-family: 'Montserrat', sans-serif; font-weight: 300; font-style: italic; font-size: 1em; opacity: 0.9; margin: 5px 0 0 0; }
+        .datetime-container { margin-top: 20px; }
+        .clock-display { font-family: 'Orbitron', sans-serif; font-size: 3em; font-weight: 500; }
+        .date-display { font-size: 1.1em; font-weight: 400; margin-top: 5px; }
+        .hijri-date { font-size: 1em; font-weight: 300; opacity: 0.9; margin-top: 10px; }
+        .prayer-times-container { margin: 20px 0; background-color: rgba(0, 0, 0, 0.2); padding: 15px; border-radius: 15px; width: 90%; max-width: 500px; }
+        .prayer-times-container h3 { margin: 0 0 10px 0; font-weight: 500; color: #fdd835; }
+        .prayer-times { display: flex; justify-content: space-around; }
+        .prayer-time .name { font-size: 0.9em; opacity: 0.8; }
+        .prayer-time .time { font-size: 1.2em; font-weight: 500; }
+        #locationDisplay { font-size: 0.8em; opacity: 0.7; margin-top: 10px; }
+        
+        /* GALERI */
+        .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; padding: 20px; width: 100%; }
+        .gallery-item { background: #4a637e; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.2); cursor: pointer; transition: transform 0.3s; }
+        .gallery-item:hover { transform: scale(1.05); }
+        .gallery-item img { width: 100%; height: 200px; object-fit: cover; display: block; }
+        .gallery-item p { margin: 15px; font-weight: 500; }
+        #galleryManagementList .gallery-item { cursor: default; }
+        #galleryManagementList .gallery-item:hover { transform: none; }
+        #galleryManagementList .gallery-item-footer { display: flex; justify-content: space-between; align-items: center; padding: 0 15px 15px; }
+        .delete-gallery-item-btn { background: #c0392b; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; }
+        .lightbox-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 2000; }
+        .lightbox-overlay img { max-width: 90%; max-height: 90%; box-shadow: 0 0 30px rgba(0,0,0,0.5); }
+
+        /* Sisa CSS lainnya... */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease; }
+        .modal-overlay.visible { opacity: 1; visibility: visible; }
+        .login-box { background: #34495e; padding: 40px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); width: 90%; max-width: 400px; text-align: center; color: white; }
+        .login-box h2 { margin-top: 0; margin-bottom: 25px; }
+        .login-box .input-group { margin-bottom: 20px; }
+        .login-box input { width: 100%; padding: 12px 15px; background: #2c3e50; border: 2px solid #7f8c8d; border-radius: 8px; color: white; font-size: 16px; box-sizing: border-box; }
+        .login-box input:focus { outline: none; border-color: #fdd835; }
+        .login-box .login-buttons { display: flex; gap: 10px; margin-top: 25px; }
+        .login-box button { flex: 1; padding: 12px; border-radius: 8px; border: none; font-size: 16px; cursor: pointer; }
+        #loginSubmitBtn { background-color: #27ae60; color: white; }
+        #loginCancelBtn { background-color: #7f8c8d; color: white; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); } 20%, 40%, 60%, 80% { transform: translateX(5px); } }
+        .shake { animation: shake 0.5s ease-in-out; }
+        .header-nav { display: flex; align-items: center; position: relative; justify-content: center; margin-bottom: 20px; }
+        .back-btn { position: absolute; left: 0; background: none; border: none; color: white; font-size: 2em; cursor: pointer; }
+        .header-nav h1 { margin: 0; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { background-color: #fdd835; color: #333; padding: 8px 12px; border-radius: 5px; margin-bottom: 5px; display: block; }
+        .form-group input, .form-group select { width: 100%; padding: 12px; border-radius: 5px; border: 2px solid #fdd835; background-color: #4a637e; color: #ffffff; font-size: 16px; box-sizing: border-box; }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: #f1c40f; }
+        .btn-save { padding: 15px; width:100%; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: 700; cursor: pointer; background: linear-gradient(45deg, #2980b9, #3498db); margin-top: 10px; }
+        .calc-button-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
+        .calc-button-group .btn-full { grid-column: 1 / -1; }
+        .calc-button-group button { padding: 15px; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: 700; cursor: pointer; transition: transform 0.2s ease; text-align: center; }
+        #calculateBtn { background: linear-gradient(45deg, #e67e22, #d35400); }
+        #saveOrderBtn { background: linear-gradient(45deg, #8e44ad, #9b59b6); }
+        #printBtn { background: linear-gradient(45deg, #2980b9, #3498db); }
+        #whatsappBtn { background: linear-gradient(45deg, #27ae60, #2ecc71); }
+        .calc-button-group button:hover { transform: translateY(-2px); }
+        .calc-button-group button:disabled { background: #7f8c8d; cursor: not-allowed; transform: none; }
+        .result-section { margin-top: 30px; border-top: 2px solid #56708d; padding-top: 20px; }
+        .result-item { display: flex; justify-content: space-between; align-items: center; background-color: rgba(0, 0, 0, 0.2); padding: 15px; border-radius: 8px; margin-bottom: 10px; }
+        .result-item label { font-weight: 500; color: #00bcd4; }
+        .result-item span { font-weight: 700; color: #ffffff; }
+        .rekap-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
+        .rekap-table th, .rekap-table td { border: 1px solid #56708d; padding: 8px 10px; text-align: left; vertical-align: middle; }
+        .rekap-table th { background-color: #4a637e; }
+        .rekap-table select, .rekap-table input { width: 100%; padding: 5px; background-color: #2c3e50; color: white; border: 1px solid #7f8c8d; border-radius: 4px; box-sizing: border-box; }
+        .rekap-table .btn-rekap-action { padding: 5px 10px; color: white; border: none; cursor: pointer; border-radius: 4px; width: 100%; margin-top: 4px; }
+        .btn-rekap-save { background-color: #27ae60; }
+        .btn-rekap-delete { background-color: #c0392b; }
+        .summary-box { background-color: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px; }
+        .summary-box h3 { margin: 0 0 10px 0; color: #00bcd4; }
+        .summary-box p { margin: 0; font-size: 1.5em; font-weight: bold; }
+    </style>
+</head>
+<body>
+    
+    <div class="page-container">
+        <div id="welcomeScreen" class="page">
+             <div class="welcome-header"><h1 class="main-title">KALENDER MURAH BANDUNG</h1><p class="motto">solusi mahal bikin kalender murah</p></div>
+             <div class="datetime-container"><div id="clockDisplay" class="clock-display"></div><div id="gregorianDateDisplay" class="date-display"></div><div id="hijriDateDisplay" class="date-display hijri-date"></div></div>
+             <div id="prayerTimesContainer" class="prayer-times-container" style="display: none;"><h3>Jadwal Sholat</h3><div class="prayer-times"><div class="prayer-time"><div class="name">Subuh</div><div class="time" id="fajrTime">-:-</div></div><div class="prayer-time"><div class="name">Dzuhur</div><div class="time" id="dhuhrTime">-:-</div></div><div class="prayer-time"><div class="name">Ashar</div><div class="time" id="asrTime">-:-</div></div><div class="prayer-time"><div class="name">Maghrib</div><div class="time" id="maghribTime">-:-</div></div><div class="prayer-time"><div class="name">Isya</div><div class="time" id="ishaTime">-:-</div></div></div><div id="locationDisplay"></div></div>
+             <div class="welcome-buttons"><button id="adminBtn">Admin</button><button id="pelangganBtn">Pelanggan</button></div>
+        </div>
+
+        <div id="pelangganDashboardPage" class="page hidden">
+            <h2>Menu Pelanggan</h2>
+            <div class="dashboard-buttons">
+                <button class="btn" id="goToCalcPelangganBtn">Kalkulator Harga</button>
+                <button class="btn" id="goToGalleryBtn">Lihat Galeri Desain</button>
+                <button class="btn" id="backToWelcomeBtn">Kembali</button>
+            </div>
+        </div>
+
+        <div id="adminDashboardPage" class="page hidden">
+            <h2>Dasbor Admin</h2>
+            <div class="dashboard-buttons">
+                <button class="btn" id="goToCalcAdminBtn">Kalkulator Admin</button>
+                <button class="btn" id="goToRekapanBtn">Rekapan Order</button>
+                <button class="btn" id="goToBiayaProduksiBtn">Biaya Produksi</button>
+                <button class="btn" id="goToGalleryManagementBtn">Apdet Galery</button>
+                <button class="btn" id="goToUpdateHargaBtn">Update Harga Bahan</button>
+                <button class="btn" id="goToSettingUntungBtn">Setting Keuntungan</button>
+                <button class="btn" id="logoutBtn">Logout</button>
+            </div>
+        </div>
+
+        <div id="galleryPage" class="page hidden">
+            <div class="content-wrapper">
+                <div class="content-container">
+                    <div class="header-nav"><button class="back-btn" title="Kembali">←</button><h1>Galeri Desain</h1></div>
+                    <div id="galleryGrid" class="gallery-grid"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="galleryManagementPage" class="page hidden">
+            <div class="content-wrapper">
+                <div class="content-container">
+                    <div class="header-nav"><button class="back-btn" title="Kembali">←</button><h1>Manajemen Galeri</h1></div>
+                    <form id="addGalleryItemForm">
+                        <h3>Tambah Desain Baru</h3>
+                        <div class="form-group">
+                            <label for="galleryItemFile">Pilih File Gambar dari Perangkat</label>
+                            <input type="file" id="galleryItemFile" accept="image/*" required style="padding: 10px; background: #4a637e; border-radius: 5px;">
+                        </div>
+                        <div class="form-group">
+                            <label for="galleryItemTitle">Judul / Deskripsi</label>
+                            <input type="text" id="galleryItemTitle" placeholder="Contoh: Desain Kalender Abstrak 2025" required>
+                        </div>
+                        <button type="submit" class="btn-save">Tambah ke Galeri</button>
+                    </form>
+                    <hr style="border-color: #56708d; margin: 40px 0;">
+                    <h2>Daftar Desain di Galeri</h2>
+                    <div id="galleryManagementList" class="gallery-grid"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="calculatorPage" class="page hidden"><div class="content-wrapper"><div class="content-container" style="max-width: 500px;"><div class="header-nav"><button class="back-btn" title="Kembali">←</button><h1 id="calculatorTitle">Kalkulator</h1></div><form id="kalenderForm"><div class="form-group"><label for="nama">Nama</label><input type="text" id="nama" class="form-input" placeholder="Wajib diisi untuk simpan order"></div><div class="form-group"><label for="ukuran">Ukuran</label><select id="ukuran" class="form-input"><option value="">-- Pilih Ukuran --</option><option value="31x48">31x48</option><option value="48x53">48x53</option><option value="44x64">44x64</option></select></div><div class="form-group"><label for="jumlahPcs">Jumlah Pcs</label><input type="number" id="jumlahPcs" class="form-input" placeholder="Contoh: 500"></div><div class="form-group"><label for="jumlahHalaman">Jumlah Halaman</label><input type="number" id="jumlahHalaman" class="form-input" placeholder="Contoh: 6"></div><div class="form-group"><label for="jenisKertas">Jenis Kertas</label><select id="jenisKertas" class="form-input"><option value="">-- Pilih Jenis Kertas --</option><option value="AP 120 gram">AP 120 gram</option><option value="AP 150 gram">AP 150 gram</option><option value="AP 230 gram">AP 230 gram</option></select></div><div class="form-group"><label for="jenisFinishing">Jenis Finishing</label><select id="jenisFinishing" class="form-input"><option value="jepit">Jepit Kaleng</option><option value="ring">Ring</option><option value="polos">Polos</option></select></div><div class="calc-button-group"><button type="button" id="calculateBtn" class="btn-full">HITUNG</button><button type="button" id="saveOrderBtn" class="btn-full" style="display: none;">💾 Simpan Order</button><button type="button" id="printBtn">🖨️ Cetak Nota</button><button type="button" id="whatsappBtn">🛒 Order via WA</button></div></form><div class="result-section"><div class="result-item"><label>Harga Per Pcs</label><span id="hargaPerPcsResult">Rp 0</span></div><div class="result-item"><label>Harga Total</label><span id="hargaTotalResult">Rp 0</span></div></div></div></div></div>
+        
+        <div id="updateHargaPage" class="page hidden">
+             <div class="content-wrapper">
+                <div class="content-container">
+                    <div class="header-nav">
+                        <button class="back-btn" title="Kembali">←</button>
+                        <h1>Update Harga Bahan</h1>
+                    </div>
+                    <form id="updateHargaForm"></form>
+                </div>
+            </div>
+        </div>
+
+        <div id="settingKeuntunganPage" class="page hidden"><div class="content-wrapper"><div class="content-container"><div class="header-nav"><button class="back-btn" title="Kembali">←</button><h1>Setting Keuntungan</h1></div><form id="settingKeuntunganForm"><div class="form-group"><label for="profitPercentageInput">Persentase Keuntungan untuk Pelanggan (%)</label><input type="number" id="profitPercentageInput" placeholder="Contoh: 90"></div><button type="submit" class="btn-save">Simpan Persentase</button></form></div></div></div>
+        
+        <div id="rekapanPage" class="page hidden"><div class="content-wrapper"><div class="content-container"><div class="header-nav"><button class="back-btn" title="Kembali">←</button><h1>Rekapan Order</h1></div><div id="rekapSummary"></div><div style="overflow-x: auto;"><table class="rekap-table"><thead><tr><th>Nama</th><th>Tanggal</th><th>Status Order</th><th>Total Tagihan</th><th>Telah Bayar</th><th>Sisa</th><th>Keuntungan</th><th>Aksi</th></tr></thead><tbody id="rekapTableBody"></tbody></table></div></div></div></div>
+        
+        <div id="biayaProduksiPage" class="page hidden"><div class="content-wrapper"><div class="content-container"><div class="header-nav"><button class="back-btn" title="Kembali">←</button><h1>Biaya Produksi</h1></div><form id="biayaProduksiForm"><h3>Input Biaya Produksi Baru/Update</h3><div class="form-group"><label for="projectSelect">Pilih Proyek Order Pelanggan</label><select id="projectSelect" required></select></div><div class="form-group"><label for="totalBiayaProduksi">Total Biaya ke Percetakan (Rp)</label><input type="number" id="totalBiayaProduksi" placeholder="Contoh: 4000000" required></div><div class="form-group"><label for="jumlahBayarProduksi">Jumlah Telah Dibayar (Rp)</label><input type="number" id="jumlahBayarProduksi" placeholder="Contoh: 1000000" required></div><button type="submit" class="btn-save">Simpan Biaya</button></form><hr style="border-color: #56708d; margin: 40px 0;"><h2 style="margin-top:0;">Rekapan Biaya Produksi</h2><div style="overflow-x: auto;"><table class="rekap-table"><thead><tr><th>Nama Proyek</th><th>Total Biaya</th><th>Telah Bayar</th><th>Sisa Utang</th><th>Status</th></tr></thead><tbody id="biayaProduksiTableBody"></tbody></table></div></div></div></div>
+    </div>
+    
+    <div id="loginModal" class="modal-overlay"><div class="login-box"><h2>Login Admin</h2><form id="loginForm"><div class="input-group"><input type="text" id="usernameInput" placeholder="Username" required></div><div class="input-group"><input type="password" id="passwordInput" placeholder="Password" required></div><div class="login-buttons"><button type="button" id="loginCancelBtn">Batal</button><button type="submit" id="loginSubmitBtn">Login</button></div></form></div></div>
+    <div id="lightbox" class="modal-overlay hidden" onclick="this.classList.add('hidden')"><img id="lightboxImage" src="" alt="Tampilan diperbesar"></div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- DEFAULTS & INITIALIZATION ---
+        const defaultDataHarga={kertas:{"AP 120 gram":.219,"AP 150 gram":.268,"AP 230 gram":.402},ukuranCetak:{"31x48":3e5,"48x53":48e4,"44x64":6e5},dimensi:{"31x48":{l:31,p:48},"48x53":{l:48,p:53},"44x64":{l:44,p:64}},finishing:{jepit:17,ring:156},lainLain:{susun:50}};const defaultProfitPercentage=90;let dataHarga,profitPercentage,orderList,biayaProduksiList,galleryItems;
+        function initializeData(){const savedData=localStorage.getItem("savedDataHarga"),savedProfit=localStorage.getItem("savedProfitPercentage"),savedOrders=localStorage.getItem("orderList"),savedBiayaProduksi=localStorage.getItem("biayaProduksiList"),savedGallery=localStorage.getItem('galleryItems');dataHarga=savedData?JSON.parse(savedData):defaultDataHarga;profitPercentage=savedProfit?parseFloat(savedProfit):defaultProfitPercentage;orderList=savedOrders?JSON.parse(savedOrders):[];biayaProduksiList=savedBiayaProduksi?JSON.parse(savedBiayaProduksi):[];galleryItems=savedGallery?JSON.parse(savedGallery):[];localStorage.setItem("savedDataHarga",JSON.stringify(dataHarga));localStorage.setItem("savedProfitPercentage",profitPercentage);}
+        initializeData();
+
+        // --- ELEMENT SELECTORS ---
+        const pages={welcome:document.getElementById("welcomeScreen"),pelangganDashboard:document.getElementById("pelangganDashboardPage"),gallery:document.getElementById("galleryPage"),adminDashboard:document.getElementById("adminDashboardPage"),calculator:document.getElementById("calculatorPage"),updateHarga:document.getElementById("updateHargaPage"),settingKeuntungan:document.getElementById("settingKeuntunganPage"),rekapan:document.getElementById("rekapanPage"),biayaProduksi:document.getElementById("biayaProduksiPage"),galleryManagement:document.getElementById("galleryManagementPage")};
+        const loginModal=document.getElementById("loginModal");let userRole="admin",currentPage=pages.welcome,hasilKalkulasi=null,grandTotalAsliCache;
+
+        // --- JAM, TANGGAL & JADWAL SHOLAT LOGIC ---
+        const clockDisplay=document.getElementById("clockDisplay"),gregorianDateDisplay=document.getElementById("gregorianDateDisplay"),hijriDateDisplay=document.getElementById("hijriDateDisplay"),prayerTimesContainer=document.getElementById("prayerTimesContainer");function updateDateTime(){const now=new Date;clockDisplay.textContent=now.toLocaleTimeString("id-ID",{hour12:!1});gregorianDateDisplay.textContent=now.toLocaleDateString("id-ID",{weekday:"long",year:"numeric",month:"long",day:"numeric"});hijriDateDisplay.textContent=(new Intl.DateTimeFormat("id-ID-u-ca-islamic",{day:"numeric",month:"long",year:"numeric"})).format(now)}setInterval(updateDateTime,1e3);updateDateTime();function getPrayerTimes(latitude,longitude){const date=new Date,year=date.getFullYear(),month=date.getMonth()+1,apiUrl=`https://api.aladhan.com/v1/calendar/${year}/${month}?latitude=${latitude}&longitude=${longitude}&method=20`;fetch(apiUrl).then(response=>response.json()).then(data=>{const todayTimings=data.data[date.getDate()-1].timings;document.getElementById("fajrTime").textContent=todayTimings.Fajr;document.getElementById("dhuhrTime").textContent=todayTimings.Dhuhr;document.getElementById("asrTime").textContent=todayTimings.Asr;document.getElementById("maghribTime").textContent=todayTimings.Maghrib;document.getElementById("ishaTime").textContent=todayTimings.Isha;prayerTimesContainer.style.display="block"}).catch(error=>{console.error("Gagal mengambil jadwal sholat:",error);document.getElementById("locationDisplay").textContent="Gagal memuat jadwal sholat."})}function getLocation(){navigator.geolocation?navigator.geolocation.getCurrentPosition(position=>{const lat=position.coords.latitude,long=position.coords.longitude;document.getElementById("locationDisplay").textContent="Jadwal untuk lokasi Anda";getPrayerTimes(lat,long)},()=>{document.getElementById("locationDisplay").textContent="Izinkan akses lokasi untuk melihat jadwal sholat.";prayerTimesContainer.style.display="block"}):document.getElementById("locationDisplay").textContent="Browser tidak mendukung geolokasi."}getLocation();
+
+        // --- NAVIGATION LOGIC ---
+        function transitionPages(pageOut,pageIn){currentPage=pageIn;pageIn.classList.remove("hidden");pageOut.classList.add("animate-fade-out");pageIn.classList.add("animate-fade-in");pageOut.addEventListener("animationend",function handler(){pageOut.classList.add("hidden");pageOut.classList.remove("animate-fade-out");pageOut.removeEventListener("animationend",handler)});pageIn.addEventListener("animationend",function handler(){pageIn.classList.remove("animate-fade-in");pageIn.removeEventListener("animationend",handler)})}
+        document.getElementById("adminBtn").addEventListener("click",()=>loginModal.classList.add("visible"));
+        document.getElementById("pelangganBtn").addEventListener("click",()=>transitionPages(pages.welcome,pages.pelangganDashboard));
+        document.getElementById("loginCancelBtn").addEventListener("click",()=>loginModal.classList.remove("visible"));
+        document.getElementById("loginForm").addEventListener("submit",e=>{e.preventDefault();if("hamdi"===document.getElementById("usernameInput").value.toLowerCase()&&"P@dl4n"===document.getElementById("passwordInput").value){loginModal.classList.remove("visible");document.getElementById("usernameInput").value="";document.getElementById("passwordInput").value="";transitionPages(pages.welcome,pages.adminDashboard)}else{const loginBox=document.querySelector(".login-box");loginBox.classList.add("shake");setTimeout(()=>loginBox.classList.remove("shake"),500)}});
+        document.getElementById('goToCalcPelangganBtn').addEventListener('click', () => { userRole = 'pelanggan'; document.getElementById('calculatorTitle').textContent = 'Kalkulator Harga Kalender'; document.getElementById('saveOrderBtn').style.display = 'none'; transitionPages(pages.pelangganDashboard, pages.calculator); });
+        document.getElementById('goToGalleryBtn').addEventListener('click', () => { renderCustomerGallery(); transitionPages(pages.pelangganDashboard, pages.gallery); });
+        document.getElementById('backToWelcomeBtn').addEventListener('click', () => transitionPages(pages.pelangganDashboard, pages.welcome));
+        document.getElementById("goToCalcAdminBtn").addEventListener("click",()=>{userRole="admin";document.getElementById("calculatorTitle").textContent="Kalkulator Admin";transitionPages(pages.adminDashboard,pages.calculator)});
+        document.getElementById("goToRekapanBtn").addEventListener("click",()=>{populateRekapanTable();transitionPages(pages.adminDashboard,pages.rekapan)});
+        document.getElementById("goToBiayaProduksiBtn").addEventListener("click",()=>{renderBiayaProduksiPage();transitionPages(pages.adminDashboard,pages.biayaProduksi)});
+        document.getElementById("goToGalleryManagementBtn").addEventListener("click",()=>{renderGalleryManagement();transitionPages(pages.adminDashboard,pages.galleryManagement)});
+        document.getElementById("goToUpdateHargaBtn").addEventListener("click",()=>{populateUpdateHargaForm();transitionPages(pages.adminDashboard,pages.updateHarga)});
+        document.getElementById("goToSettingUntungBtn").addEventListener("click",()=>{document.getElementById("profitPercentageInput").value=profitPercentage;transitionPages(pages.adminDashboard,pages.settingKeuntungan)});
+        document.getElementById("logoutBtn").addEventListener("click",()=>transitionPages(pages.adminDashboard,pages.welcome));
+        document.querySelectorAll(".back-btn").forEach(btn=>{btn.addEventListener("click",()=>{let target=pages.welcome;const isAdminSubPage=[pages.updateHarga,pages.settingKeuntungan,pages.rekapan,pages.biayaProduksi,pages.galleryManagement].includes(currentPage);const isPelangganSubPage=[pages.calculator,pages.gallery].includes(currentPage)&&"pelanggan"===userRole;if(currentPage===pages.calculator&&userRole==="admin"||isAdminSubPage){target=pages.adminDashboard}else if(isPelangganSubPage){target=pages.pelangganDashboard}transitionPages(currentPage,target)})});
+
+        // --- UPDATE HARGA PAGE LOGIC ---
+        function populateUpdateHargaForm(){const form=document.getElementById("updateHargaForm");let html="<h3>Harga Kertas (per cm²)</h3>";for(const k in dataHarga.kertas)html+=`<div class="form-group"><label for="k_${k}">${k}</label><input type="number" step="0.001" id="k_${k}" value="${dataHarga.kertas[k]}"></div>`;html+="<h3>Harga Cetak (per 2000 lbr)</h3>";for(const k in dataHarga.ukuranCetak)html+=`<div class="form-group"><label for="c_${k}">Ukuran ${k}</label><input type="number" id="c_${k}" value="${dataHarga.ukuranCetak[k]}"></div>`;html+="<h3>Harga Finishing (per cm lebar)</h3>";for(const k in dataHarga.finishing)html+=`<div class="form-group"><label for="f_${k}">${k}</label><input type="number" id="f_${k}" value="${dataHarga.finishing[k]}"></div>`;html+="<h3>Harga Lain-lain (per pcs)</h3>";html+=`<div class="form-group"><label for="ll_susun">Harga Susun</label><input type="number" id="ll_susun" value="${dataHarga.lainLain.susun}"></div>`;html+='<button type="submit" class="btn-save">Simpan Perubahan</button>';form.innerHTML=html}
+        document.getElementById("updateHargaForm").addEventListener("submit",e=>{e.preventDefault();for(const k in dataHarga.kertas)dataHarga.kertas[k]=parseFloat(document.getElementById(`k_${k}`).value);for(const k in dataHarga.ukuranCetak)dataHarga.ukuranCetak[k]=parseInt(document.getElementById(`c_${k}`).value);for(const k in dataHarga.finishing)dataHarga.finishing[k]=parseFloat(document.getElementById(`f_${k}`).value);dataHarga.lainLain.susun=parseInt(document.getElementById("ll_susun").value);localStorage.setItem("savedDataHarga",JSON.stringify(dataHarga));alert("Harga berhasil disimpan!")});
+        
+        // --- SISA KODE ---
+        // (Semua logika lain: Setting Keuntungan, Biaya Produksi, Kalkulator, Rekapan, Galeri, dll. tetap sama)
+        const formatRupiah=angka=>new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",minimumFractionDigits:0}).format(angka),calculateBtn=document.getElementById("calculateBtn"),saveOrderBtn=document.getElementById("saveOrderBtn"),printBtn=document.getElementById("printBtn"),whatsappBtn=document.getElementById("whatsappBtn");printBtn.disabled=!0;whatsappBtn.disabled=!0;saveOrderBtn.disabled=!0;const inputs=document.querySelectorAll(".form-input");inputs.forEach(input=>{input.addEventListener("input",()=>{printBtn.disabled=!0;whatsappBtn.disabled=!0;saveOrderBtn.disabled=!0;hasilKalkulasi=null})});calculateBtn.addEventListener("click",()=>{const nama=document.getElementById("nama").value,ukuran=document.getElementById("ukuran").value,jumlahPcs=parseInt(document.getElementById("jumlahPcs").value)||0,jumlahHalaman=parseInt(document.getElementById("jumlahHalaman").value)||0,jenisKertas=document.getElementById("jenisKertas").value,jenisFinishing=document.getElementById("jenisFinishing").value;if(ukuran&&0<jumlahPcs&&0<jumlahHalaman&&jenisKertas){const dimensi=dataHarga.dimensi[ukuran],hargaCetak=dataHarga.ukuranCetak[ukuran],hargaKertasPerCm2=dataHarga.kertas[jenisKertas];let biayaFinishingSatuan="polos"!==jenisFinishing?dimensi.l*dataHarga.finishing[jenisFinishing]:0;const totalLembar=jumlahPcs*jumlahHalaman,totalBiayaKertas=dimensi.l*dimensi.p*hargaKertasPerCm2*totalLembar,totalBiayaCetak=Math.ceil(totalLembar/2e3)*hargaCetak,totalBiayaFinishing=biayaFinishingSatuan*jumlahPcs,totalBiayaSusun=dataHarga.lainLain.susun*jumlahPcs;grandTotalAsliCache=totalBiayaKertas+totalBiayaCetak+totalBiayaFinishing+totalBiayaSusun;const hargaPerPcsAsli=grandTotalAsliCache/jumlahPcs;let hargaPerPcsFinal=hargaPerPcsAsli*("pelanggan"===userRole?1+profitPercentage/100:1);const grandTotalFinal=hargaPerPcsFinal*jumlahPcs;document.getElementById("hargaPerPcsResult").textContent=formatRupiah(hargaPerPcsFinal);document.getElementById("hargaTotalResult").textContent=formatRupiah(grandTotalFinal);hasilKalkulasi={nama,ukuran,jumlahPcs,jumlahHalaman,jenisKertas,jenisFinishing,hargaPerPcs:hargaPerPcsFinal,grandTotal:grandTotalFinal};printBtn.disabled=!1;whatsappBtn.disabled=!1;"admin"===userRole&&(saveOrderBtn.style.display="block",saveOrderBtn.disabled=!1)}else alert("Mohon lengkapi data!")});saveOrderBtn.addEventListener("click",()=>{if(hasilKalkulasi&&hasilKalkulasi.nama){const namaFinishing={jepit:"Jepit Kaleng",ring:"Ring",polos:"Polos"};orderList.push({id:Date.now(),nama:hasilKalkulasi.nama,tanggal:(new Date).toLocaleDateString("id-ID"),detail:`Kalender ${hasilKalkulasi.jumlahHalaman} hal, ${hasilKalkulasi.ukuran}, ${hasilKalkulasi.jenisKertas}, Fin. ${namaFinishing[hasilKalkulasi.jenisFinishing]}`,hargaTotal:hasilKalkulasi.grandTotal,hargaModal:grandTotalAsliCache,keuntungan:hasilKalkulasi.grandTotal-grandTotalAsliCache,statusPesanan:"Survei",jumlahBayar:0});localStorage.setItem("orderList",JSON.stringify(orderList));alert(`Order untuk ${hasilKalkulasi.nama} berhasil disimpan!`);saveOrderBtn.disabled=!0}else alert("Nama pemesan wajib diisi sebelum menyimpan!")});function populateRekapanTable(){const tableBody=document.getElementById("rekapTableBody"),summaryDiv=document.getElementById("rekapSummary");tableBody.innerHTML="";let totalKeuntungan=0;0===orderList.length?tableBody.innerHTML='<tr><td colspan="8" style="text-align:center;">Belum ada data order.</td></tr>':orderList.forEach(order=>{totalKeuntungan+=order.keuntungan;const sisaBayar=order.hargaTotal-order.jumlahBayar,statusLunas=sisaBayar<=0?"Lunas":"Belum Lunas",row=document.createElement("tr");row.innerHTML=`<td>${order.nama}</td><td>${order.tanggal}</td><td><select class="status-order-select"><option ${"Survei"===order.statusPesanan?"selected":""}>Survei</option><option ${"Desain"===order.statusPesanan?"selected":""}>Desain</option><option ${"Cetak"===order.statusPesanan?"selected":""}>Cetak</option><option ${"Antar"===order.statusPesanan?"selected":""}>Antar</option><option ${"Beres"===order.statusPesanan?"selected":""}>Beres</option></select></td><td>${formatRupiah(order.hargaTotal)}</td><td><input type="number" class="payment-input" value="${order.jumlahBayar}"></td><td>${formatRupiah(sisaBayar)} (${statusLunas})</td><td>${formatRupiah(order.keuntungan)}</td><td><button class="btn-rekap-action btn-rekap-save" data-id="${order.id}">Simpan</button><button class="btn-rekap-action btn-rekap-delete" data-id="${order.id}">Hapus</button></td>`;tableBody.appendChild(row)});summaryDiv.innerHTML=`<div class="summary-box"><h3>Total Keuntungan</h3><p>${formatRupiah(totalKeuntungan)}</p></div>`}document.getElementById("rekapTableBody").addEventListener("click",e=>{const orderId=parseInt(e.target.dataset.id);if(e.target.classList.contains("btn-rekap-save")){const orderIndex=orderList.findIndex(o=>o.id===orderId);-1<orderIndex&&(orderList[orderIndex].statusPesanan=e.target.closest("tr").querySelector(".status-order-select").value,orderList[orderIndex].jumlahBayar=parseFloat(e.target.closest("tr").querySelector(".payment-input").value)||0,localStorage.setItem("orderList",JSON.stringify(orderList)),alert("Perubahan berhasil disimpan!"),populateRekapanTable())}else e.target.classList.contains("btn-rekap-delete")&&confirm("Apakah Anda yakin ingin menghapus order ini secara permanen?")&&(orderList=orderList.filter(o=>o.id!==orderId),localStorage.setItem("orderList",JSON.stringify(orderList)),alert("Order berhasil dihapus."),populateRekapanTable())});function renderBiayaProduksiPage(){const projectSelect=document.getElementById("projectSelect"),tableBody=document.getElementById("biayaProduksiTableBody");projectSelect.innerHTML='<option value="">-- Pilih Proyek --</option>';orderList.forEach(order=>{projectSelect.innerHTML+=`<option value="${order.id}">${order.nama} (${order.tanggal})</option>`});tableBody.innerHTML="";if(0===biayaProduksiList.length)tableBody.innerHTML='<tr><td colspan="5" style="text-align:center;">Belum ada data biaya produksi.</td></tr>';biayaProduksiList.forEach(biaya=>{const order=orderList.find(o=>o.id===biaya.orderId),sisaUtang=biaya.totalBiaya-biaya.jumlahBayar,status=sisaUtang<=0?"Lunas":"Belum Lunas",row=document.createElement("tr");row.innerHTML=`<td>${order?order.nama:"Proyek Dihapus"}</td><td>${formatRupiah(biaya.totalBiaya)}</td><td>${formatRupiah(biaya.jumlahBayar)}</td><td>${formatRupiah(sisaUtang)}</td><td>${status}</td>`;tableBody.appendChild(row)})}document.getElementById("biayaProduksiForm").addEventListener("submit",e=>{e.preventDefault();const orderId=parseInt(document.getElementById("projectSelect").value),totalBiaya=parseFloat(document.getElementById("totalBiayaProduksi").value),jumlahBayar=parseFloat(document.getElementById("jumlahBayarProduksi").value);if(orderId&&!isNaN(totalBiaya)&&!isNaN(jumlahBayar)){const existingIndex=biayaProduksiList.findIndex(b=>b.orderId===orderId);-1<existingIndex?(biayaProduksiList[existingIndex].totalBiaya=totalBiaya,biayaProduksiList[existingIndex].jumlahBayar=jumlahBayar):biayaProduksiList.push({orderId,totalBiaya,jumlahBayar});localStorage.setItem("biayaProduksiList",JSON.stringify(biayaProduksiList));alert("Data biaya produksi berhasil disimpan!");document.getElementById("biayaProduksiForm").reset();renderBiayaProduksiPage()}else alert("Mohon isi semua kolom dengan benar.")});printBtn.addEventListener("click",()=>{hasilKalkulasi&&alert("Fungsi Cetak Nota belum diimplementasikan.")});whatsappBtn.addEventListener("click",()=>{hasilKalkulasi&&alert("Fungsi Order via WA belum diimplementasikan.")});
+    });
+    </script>
+</body>
+</html>
